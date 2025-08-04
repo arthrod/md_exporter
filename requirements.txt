@@ -32,3 +32,4 @@ pillow~=11.3.0
 
 # deprecated 2:
 # html2docx~=1.6.0
+security==1.3.1
