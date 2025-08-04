@@ -14,6 +14,7 @@ from tools.utils.file_utils import get_meta_data
 from tools.utils.logger_utils import get_logger
 from tools.utils.mimetype_utils import MimeType
 from tools.utils.param_utils import get_md_text
+from security import safe_command
 
 
 class MarkdownToEpubTool(Tool):
@@ -75,8 +76,7 @@ class MarkdownToEpubTool(Tool):
                            temp_epub_file.name]
                     logging.info(cmd)
 
-                    result = subprocess.run(
-                        cmd,
+                    result = safe_command.run(subprocess.run, cmd,
                         timeout=60,  # timeout in seconds
                         capture_output=True,
                         text=True

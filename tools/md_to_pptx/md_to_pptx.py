@@ -14,6 +14,7 @@ from tools.utils.file_utils import get_meta_data
 from tools.utils.logger_utils import get_logger
 from tools.utils.mimetype_utils import MimeType
 from tools.utils.param_utils import get_md_text
+from security import safe_command
 
 
 class MarkdownToPptxTool(Tool):
@@ -53,8 +54,7 @@ class MarkdownToPptxTool(Tool):
                            Path(temp_md_file.name),
                            Path(temp_pptx_file.name)]
 
-                    result = subprocess.run(
-                        cmd,
+                    result = safe_command.run(subprocess.run, cmd,
                         timeout=60,  # timeout in seconds
                         capture_output=True,
                         text=True
