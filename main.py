@@ -2,6 +2,9 @@ from fastapi import FastAPI, HTTPException, Response, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 import os
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import PlainTextResponse
+from starlette.types import ASGIApp
 
 from tools.md_to_docx.md_to_docx import MarkdownToDocxTool
 from tools.md_to_html.md_to_html import MarkdownToHtmlTool
@@ -22,6 +25,29 @@ from tools.md_to_latex.md_to_latex import MarkdownToLatexTool
 from dify_plugin.entities.tool import ToolInvokeMessage
 
 app = FastAPI()
+
+
+class ContentSizeLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: ASGIApp, max_content_size: int):
+        super().__init__(app)
+        self.max_content_size = max_content_size
+
+    async def dispatch(self, request, call_next):
+        if request.method in ["POST", "PUT", "PATCH"]:
+            content_length = request.headers.get("Content-Length")
+            if content_length:
+                try:
+                    if int(content_length) > self.max_content_size:
+                        return PlainTextResponse("Request entity too large", status_code=413)
+                except ValueError:
+                    pass
+        response = await call_next(request)
+        return response
+
+
+MAX_MD_SIZE = 10 * 1024 * 1024  # 10 MB
+
+app.add_middleware(ContentSizeLimitMiddleware, max_content_size=MAX_MD_SIZE)
 
 security = HTTPBearer()
 
@@ -58,6 +84,10 @@ TOOL_MAP = {
 
 @app.post("/convert")
 def convert(req: ConversionRequest, _: HTTPAuthorizationCredentials = Depends(authorize)):
+    md_size = len(req.md_content.encode("utf-8"))
+    if md_size > MAX_MD_SIZE:
+        raise HTTPException(status_code=413, detail="Markdown content too large")
+
     tool_cls = TOOL_MAP.get(req.conversion_to_format)
     if not tool_cls:
         raise HTTPException(status_code=400, detail="Unsupported conversion format")
