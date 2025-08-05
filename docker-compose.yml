@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - API_TOKEN=${API_TOKEN}
+    entrypoint: /app/entrypoint.sh
